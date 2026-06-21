@@ -15,6 +15,20 @@ export default defineConfig({
     port: 5173,
     open: false,
     proxy: {
+      // 鉴权走 user 微服务（更具体路径必须先声明）
+      '/api/auth': {
+        target: 'http://localhost:8082',
+        changeOrigin: true,
+      },
+      '/api/users/me': {
+        target: 'http://localhost:8082',
+        changeOrigin: true,
+      },
+      '/api/workspaces': {
+        target: 'http://localhost:8082',
+        changeOrigin: true,
+      },
+      // 其他 /api/* 走主服务
       '/api': {
         target: 'http://localhost:8080',
         changeOrigin: true,

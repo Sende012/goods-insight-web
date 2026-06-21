@@ -1,12 +1,15 @@
-import { Layout, Menu, Typography, theme } from 'antd'
+import { Layout, Menu, Typography, theme, Avatar, Dropdown, Space } from 'antd'
 import {
   DashboardOutlined,
   PlusCircleOutlined,
   SwapOutlined,
   AppstoreOutlined,
   UnorderedListOutlined,
+  UserOutlined,
+  LogoutOutlined,
 } from '@ant-design/icons'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
+import { getCurrentUser, clearAuth } from '../api/client'
 
 const { Header, Sider, Content } = Layout
 const { Title } = Typography
@@ -23,10 +26,25 @@ export default function MainLayout() {
   const location = useLocation()
   const navigate = useNavigate()
   const { token } = theme.useToken()
+  const user = getCurrentUser()
 
   const selectedKey =
     menuItems.find((m) => m.key !== '/' && location.pathname.startsWith(m.key))?.key ||
     (location.pathname === '/' ? '/' : '/')
+
+  const onLogout = () => {
+    clearAuth()
+    navigate('/login', { replace: true })
+  }
+
+  const userMenu = {
+    items: [
+      { key: 'logout', icon: <LogoutOutlined />, label: '退出登录' },
+    ],
+    onClick: ({ key }) => {
+      if (key === 'logout') onLogout()
+    },
+  }
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
@@ -45,10 +63,25 @@ export default function MainLayout() {
         />
       </Sider>
       <Layout>
-        <Header style={{ background: token.colorBgContainer, padding: '0 24px', borderBottom: `1px solid ${token.colorBorderSecondary}` }}>
+        <Header
+          style={{
+            background: token.colorBgContainer,
+            padding: '0 24px',
+            borderBottom: `1px solid ${token.colorBorderSecondary}`,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          }}
+        >
           <Title level={4} style={{ margin: 0, lineHeight: '64px' }}>
             亚马逊评论 AI 洞察平台
           </Title>
+          <Dropdown menu={userMenu} placement="bottomRight">
+            <Space style={{ cursor: 'pointer' }}>
+              <Avatar icon={<UserOutlined />} size="small" />
+              <span>{user?.username || '未登录'}</span>
+            </Space>
+          </Dropdown>
         </Header>
         <Content style={{ margin: 24, padding: 24, background: token.colorBgContainer, borderRadius: token.borderRadius }}>
           <Outlet />

@@ -1,6 +1,27 @@
 import axios from 'axios'
 import { message } from 'antd'
 
+const TOKEN_KEY = 'gi_token'
+const USER_KEY = 'gi_user'
+
+export const getToken = () => localStorage.getItem(TOKEN_KEY)
+export const setAuth = (token, user) => {
+  localStorage.setItem(TOKEN_KEY, token)
+  localStorage.setItem(USER_KEY, JSON.stringify(user))
+}
+export const clearAuth = () => {
+  localStorage.removeItem(TOKEN_KEY)
+  localStorage.removeItem(USER_KEY)
+}
+export const getCurrentUser = () => {
+  const raw = localStorage.getItem(USER_KEY)
+  try {
+    return raw ? JSON.parse(raw) : null
+  } catch {
+    return null
+  }
+}
+
 const client = axios.create({
   baseURL: '/api',
   timeout: 30000,
@@ -18,8 +39,10 @@ function parseJsonArray(s) {
   }
 }
 
+// 请求拦截器：自动带 JWT
 client.interceptors.request.use((config) => {
-  // MVP 单租户，workspace_id 后端硬编码 1
+  const token = getToken()
+  if (token) config.headers.Authorization = `Bearer ${token}`
   return config
 })
 
@@ -35,6 +58,17 @@ client.interceptors.response.use(
     return normalize(data)
   },
   (err) => {
+    const status = err?.response?.status
+    const code = err?.response?.data?.code
+    if (status === 401 || code === 'invalid_token' || code === 'missing_token') {
+      clearAuth()
+      // 避免在登录页本身重复跳
+      if (!window.location.pathname.startsWith('/login')) {
+        message.warning('登录已失效，请重新登录')
+        window.location.href = '/login'
+      }
+      return Promise.reject(err)
+    }
     const msg = err?.response?.data?.message || err.message || '网络异常'
     message.error(msg)
     return Promise.reject(err)
@@ -54,6 +88,13 @@ export default client
 
 // 业务 API
 export const api = {
+  // 鉴权
+  login: (account, password) =>
+    client.post('/auth/login', { account, password }),
+  register: (body) => client.post('/auth/register', body),
+  me: () => client.get('/users/me'),
+  listWorkspaces: () => client.get('/workspaces'),
+
   // 产品
   listProducts: (params) => client.get('/products', { params }),
   getProduct: (id) => client.get(`/products/${id}`),
