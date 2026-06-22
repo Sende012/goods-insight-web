@@ -22,9 +22,9 @@ export default function Compare() {
     if (asinList.length < 2) return
     setLoading(true)
     try {
-      const group = await api.createCompetitorGroup({ groupName: 'Quick Compare', asinList })
-      await api.runCompare(group.id)
-      const r = await api.getCompareResult(group.id)
+      const groupId = await api.createCompetitorGroup({ groupName: 'Quick Compare', asinList })
+      await api.runCompare(groupId)
+      const r = await api.getCompareResult(groupId)
       setResult(r)
     } catch (e) {
       // 兜底：接口未实现时显示 mock

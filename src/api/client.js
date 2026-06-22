@@ -92,6 +92,9 @@ export const api = {
   login: (account, password) =>
     client.post('/auth/login', { account, password }),
   register: (body) => client.post('/auth/register', body),
+  sendResetCode: (email) => client.post('/auth/forgot-code', { email }),
+  resetPassword: (email, code, newPassword) =>
+    client.post('/auth/reset-password', { email, code, newPassword }),
   me: () => client.get('/users/me'),
   listWorkspaces: () => client.get('/workspaces'),
 
@@ -106,11 +109,13 @@ export const api = {
   uploadReviews: (productId, file) => {
     const fd = new FormData()
     fd.append('file', file)
-    return client.post(`/products/${productId}/reviews/import`, fd, {
+    return client.post('/reviews/import', fd, {
+      params: { productId },
       headers: { 'Content-Type': 'multipart/form-data' },
     })
   },
-  listImportJobs: (params) => client.get('/review-import-jobs', { params }),
+  listImportJobs: (params) => client.get('/reviews/import-jobs', { params }),
+  listReviews: (params) => client.get('/reviews', { params }),
 
   // 分析任务
   listAnalysisJobs: (params) => client.get('/analysis-jobs', { params }),
@@ -120,9 +125,15 @@ export const api = {
   triggerAnalysis: (id) => client.post(`/analysis-jobs/${id}/run`),
   getAnalysisResult: (jobId) => client.get(`/analysis-results/by-job/${jobId}`),
 
-  // 爬虫（v1.0 新增）
-  submitCrawlTask: (asin) => client.post('/crawler/tasks', { asin }),
-  getCrawlTask: (id) => client.get(`/crawler/tasks/${id}`),
+  // 爬虫（v1.0 微服务，桥接 goods-insight-crawler）
+  submitCrawlTask: (productId, marketplace = 'US', maxPages = 10) =>
+    client.post(`/products/${productId}/crawl`, null, {
+      params: { marketplace, maxPages },
+    }),
+  getCrawlTask: (taskId) => client.get(`/crawl-tasks/${taskId}`),
+  listCrawlTasks: (params) => client.get('/crawl-tasks', { params }),
+  importCrawlTask: (taskId) => client.post(`/crawl-tasks/${taskId}/import`),
+  retryCrawlTask: (taskId) => client.post(`/crawl-tasks/${taskId}/retry`),
 
   // 竞品对比（v1.0 新增）
   createCompetitorGroup: (body) => client.post('/competitor-groups', body),

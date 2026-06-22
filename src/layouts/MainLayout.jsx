@@ -5,6 +5,8 @@ import {
   SwapOutlined,
   AppstoreOutlined,
   UnorderedListOutlined,
+  CloudDownloadOutlined,
+  CommentOutlined,
   UserOutlined,
   LogoutOutlined,
 } from '@ant-design/icons'
@@ -20,6 +22,8 @@ const menuItems = [
   { key: '/compare', icon: <SwapOutlined />, label: '竞品对比' },
   { key: '/category', icon: <AppstoreOutlined />, label: '类目扫描' },
   { key: '/jobs', icon: <UnorderedListOutlined />, label: '任务中心' },
+  { key: '/crawl-tasks', icon: <CloudDownloadOutlined />, label: '爬虫任务' },
+  { key: '/reviews', icon: <CommentOutlined />, label: '评论管理' },
 ]
 
 export default function MainLayout() {
@@ -74,7 +78,7 @@ export default function MainLayout() {
           }}
         >
           <Title level={4} style={{ margin: 0, lineHeight: '64px' }}>
-            亚马逊评论 AI 洞察平台
+            亚马逊 AI 洞察平台
           </Title>
           <Dropdown menu={userMenu} placement="bottomRight">
             <Space style={{ cursor: 'pointer' }}>

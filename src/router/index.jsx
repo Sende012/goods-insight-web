@@ -8,6 +8,8 @@ import ProductDetail from '../pages/ProductDetail'
 import Compare from '../pages/Compare'
 import CategoryScan from '../pages/CategoryScan'
 import Jobs from '../pages/Jobs'
+import CrawlTasks from '../pages/CrawlTasks'
+import Reviews from '../pages/Reviews'
 
 /** 需要登录才能访问 */
 function RequireAuth() {
@@ -30,6 +32,8 @@ export const router = createBrowserRouter([
           { path: 'compare', element: <Compare /> },
           { path: 'category', element: <CategoryScan /> },
           { path: 'jobs', element: <Jobs /> },
+          { path: 'crawl-tasks', element: <CrawlTasks /> },
+          { path: 'reviews', element: <Reviews /> },
           { path: '*', element: <Navigate to="/" replace /> },
         ],
       },

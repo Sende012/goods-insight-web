@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Card, Table, Tag, Button, Space, Typography, Progress } from 'antd'
+import { useNavigate } from 'react-router-dom'
 import { api } from '../api/client'
 import dayjs from 'dayjs'
 
@@ -10,6 +11,7 @@ const statusColor = { PENDING: 'gold', RUNNING: 'blue', SUCCESS: 'green', FAILED
 export default function Jobs() {
   const [data, setData] = useState([])
   const [loading, setLoading] = useState(false)
+  const navigate = useNavigate()
 
   const load = async () => {
     setLoading(true)
@@ -72,9 +74,18 @@ export default function Jobs() {
           },
           {
             title: '操作',
-            width: 120,
+            width: 160,
             render: (_, r) => (
               <Space>
+                {r.status === 'SUCCESS' && (
+                  <Button
+                    size="small"
+                    type="link"
+                    onClick={() => navigate(`/products/${r.productId}`)}
+                  >
+                    查看结果
+                  </Button>
+                )}
                 {r.status === 'FAILED' && (
                   <Button size="small" type="link" onClick={() => onRetry(r.id)}>重试</Button>
                 )}
