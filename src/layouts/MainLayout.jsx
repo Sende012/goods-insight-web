@@ -7,8 +7,19 @@ import {
   UnorderedListOutlined,
   CloudDownloadOutlined,
   CommentOutlined,
+  CalculatorOutlined,
+  LineChartOutlined,
+  ApartmentOutlined,
+  BarcodeOutlined,
+  BulbOutlined,
+  SafetyOutlined,
+  FileProtectOutlined,
+  RobotOutlined,
+  FireOutlined,
+  AimOutlined,
   UserOutlined,
   LogoutOutlined,
+  ApiOutlined,
 } from '@ant-design/icons'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { getCurrentUser, clearAuth } from '../api/client'
@@ -24,6 +35,17 @@ const menuItems = [
   { key: '/jobs', icon: <UnorderedListOutlined />, label: '任务中心' },
   { key: '/crawl-tasks', icon: <CloudDownloadOutlined />, label: '爬虫任务' },
   { key: '/reviews', icon: <CommentOutlined />, label: '评论管理' },
+  { key: '/profit', icon: <CalculatorOutlined />, label: '利润估算' },
+  { key: '/trend', icon: <LineChartOutlined />, label: '趋势预警' },
+  { key: '/categories', icon: <ApartmentOutlined />, label: '类目库' },
+  { key: '/asin-library', icon: <BarcodeOutlined />, label: 'ASIN 库' },
+  { key: '/ideas', icon: <BulbOutlined />, label: 'AI 创意' },
+  { key: '/risk', icon: <SafetyOutlined />, label: '风险评估' },
+  { key: '/patents', icon: <FileProtectOutlined />, label: '专利库' },
+  { key: '/agent', icon: <RobotOutlined />, label: '决策代理' },
+  { key: '/coach', icon: <FireOutlined />, label: 'AI 教练' },
+  { key: '/selection-coach', icon: <AimOutlined />, label: '决策报告' },
+  { key: '/open-platform', icon: <ApiOutlined />, label: 'API 开放平台' },
 ]
 
 export default function MainLayout() {
@@ -33,7 +55,9 @@ export default function MainLayout() {
   const user = getCurrentUser()
 
   const selectedKey =
-    menuItems.find((m) => m.key !== '/' && location.pathname.startsWith(m.key))?.key ||
+    [...menuItems]
+      .filter((m) => m.key !== '/' && location.pathname.startsWith(m.key))
+      .sort((a, b) => b.key.length - a.key.length)[0]?.key ||
     (location.pathname === '/' ? '/' : '/')
 
   const onLogout = () => {

@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>Goods Insight API 开放平台</title>
+  <style>
+    body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; max-width: 920px; margin: 40px auto; padding: 0 20px; color: #222; line-height: 1.6; }
+    h1 { border-bottom: 2px solid #1677ff; padding-bottom: 8px; }
+    h2 { margin-top: 32px; border-left: 4px solid #1677ff; padding-left: 12px; }
+    h3 { margin-top: 24px; color: #1677ff; }
+    pre { background: #f5f5f5; padding: 14px; border-radius: 6px; overflow-x: auto; font-size: 13px; }
+    code { background: #f5f5f5; padding: 1px 6px; border-radius: 3px; font-size: 13px; }
+    table { border-collapse: collapse; width: 100%; margin: 12px 0; }
+    th, td { border: 1px solid #e0e0e0; padding: 8px 12px; text-align: left; }
+    th { background: #fafafa; font-weight: 600; }
+    .tag { display: inline-block; padding: 2px 8px; background: #1677ff; color: white; border-radius: 3px; font-size: 12px; }
+    .warn { background: #fffbe6; border-left: 4px solid #faad14; padding: 12px 16px; margin: 16px 0; }
+    .danger { background: #fff1f0; border-left: 4px solid #f5222d; padding: 12px 16px; margin: 16px 0; }
+  </style>
+</head>
+<body>
+
+<h1>Goods Insight API 开放平台</h1>
+<p>开放给第三方集成的 4 个高价值接口。所有请求必须带 HMAC-SHA256 签名头。</p>
+
+<h2>1. 鉴权</h2>
+
+<h3>1.1 请求头</h3>
+<table>
+  <tr><th>Header</th><th>必填</th><th>说明</th></tr>
+  <tr><td><code>X-Api-Key</code></td><td>是</td><td>公开的 key_id，形如 <code>gi_live_abc123def456</code></td></tr>
+  <tr><td><code>X-Timestamp</code></td><td>是</td><td>Unix 秒（10 位），与服务端偏差 ≤ 300s</td></tr>
+  <tr><td><code>X-Signature</code></td><td>是</td><td>HMAC-SHA256 签名的 hex（小写）</td></tr>
+</table>
+
+<h3>1.2 签名算法</h3>
+<pre>
+message = METHOD + "\n"
+        + REQUEST_PATH + "\n"   # 不含 query string
+        + X-Timestamp + "\n"
+        + sha256_hex(body)      # GET 请求 body 为空字符串
+
+signature = hex(HMAC-SHA256(secret, message))
+</pre>
+
+<div class="warn">
+  ⚠️ <b>secret</b> 是创建 API Key 时一次性返回的 40 字符随机串，<b>只显示一次</b>，请妥善保存。
+  库内不存 secret 原值（生产环境应使用 KMS 加密列）。
+</div>
+
+<h3>1.3 完整示例（curl + openssl）</h3>
+<pre><code># 变量
+KEY_ID="gi_live_abc123def456"
+SECRET="你的40字符secret"
+METHOD="POST"
+PATH_="/open/v1/profit/estimate"
+TS=$(date +%s)
+BODY='{"asin":"B0CX12345","marketplace":"US","sellPrice":29.99,"cogs":8.00}'
+
+# 计算签名
+BODY_HASH=$(echo -n "$BODY" | openssl dgst -sha256 -hex | awk '{print $2}')
+MESSAGE="${METHOD}\n${PATH_}\n${TS}\n${BODY_HASH}"
+SIG=$(printf "%b" "$MESSAGE" | openssl dgst -sha256 -hmac "$SECRET" -hex | awk '{print $2}')
+
+# 发请求
+curl -X "https://api.goods-insight.com${PATH_}" \
+  -H "X-Api-Key: $KEY_ID" \
+  -H "X-Timestamp: $TS" \
+  -H "X-Signature: $SIG" \
+  -H "Content-Type: application/json" \
+  -d "$BODY"
+</code></pre>
+
+<h2>2. 接口列表</h2>
+
+<h3>2.1 <code>POST /open/v1/profit/estimate</code> — 利润估算</h3>
+<p>输入：ASIN 或 产品 + 售价/成本/费用。输出：净利润、净利率、回本月数、风险等级。</p>
+<pre><code>Request:
+{
+  "asin": "B0CX12345",
+  "marketplace": "US",
+  "sellPrice": 29.99,
+  "cogs": 8.00,
+  "fbaFee": 4.50,
+  "referralFeePct": 0.15,
+  "adCost": 3.00,
+  "otherCost": 0.50
+}
+
+Response: ProfitEstimationResDTO
+</code></pre>
+
+<h3>2.2 <code>POST /open/v1/risk/assess</code> — 风险评估</h3>
+<p>输入：ASIN 或 类目 + 售价。输出：总分（0-100）+ 等级（LOW/MEDIUM/HIGH）+ 4 维分项 + AI 建议。</p>
+<pre><code>Request:
+{
+  "asin": "B0CX12345",
+  "sellPrice": 29.99
+}
+
+Response: RiskScoreResDTO { totalScore, level, breakdown, warnings, aiAdvice }
+</code></pre>
+
+<h3>2.3 <code>POST /open/v1/ideas/generate</code> — 创意生成</h3>
+<p>输入：材料/工艺/认证/月产能。输出：3-5 个产品创意（按可行性分数降序）。</p>
+<pre><code>Request:
+{
+  "materials": ["Bamboo", "Cotton"],
+  "processes": ["Laser Engraving"],
+  "monthlyCapacity": 5000,
+  "targetPrice": "29.99",
+  "ideaCount": 3
+}
+
+Response: { count: 3, ideas: [ProductIdeaResDTO, ...] }
+</code></pre>
+
+<h3>2.4 <code>POST /open/v1/trend/forecast</code> — 趋势预测</h3>
+<p>输入：关键词 + dataType（SEARCH_VOLUME / SALES_VOLUME）。输出：未来 6 个月预测 + AI 建议。</p>
+<pre><code>Request:
+{
+  "keyword": "yoga mat",
+  "dataType": "SEARCH_VOLUME",
+  "lookbackMonths": 12
+}
+
+Response: TrendForecastResDTO
+</code></pre>
+<p>GET 简化版：<code>GET /open/v1/trend/forecast?keyword=yoga+mat</code></p>
+
+<h2>3. 错误码</h2>
+<table>
+  <tr><th>HTTP</th><th>code</th><th>说明</th></tr>
+  <tr><td>401</td><td><code>missing_credentials</code></td><td>3 个必填头缺失</td></tr>
+  <tr><td>401</td><td><code>timestamp_expired</code></td><td>时间戳与服务器偏差 &gt; 300s</td></tr>
+  <tr><td>401</td><td><code>invalid_api_key</code></td><td>Key 不存在</td></tr>
+  <tr><td>403</td><td><code>key_not_active</code></td><td>Key 状态非 ACTIVE（已撤销 / 已过期）</td></tr>
+  <tr><td>403</td><td><code>key_expired</code></td><td>Key 超过 expires_at</td></tr>
+  <tr><td>401</td><td><code>invalid_signature</code></td><td>签名校验失败（大概率 secret 错）</td></tr>
+  <tr><td>429</td><td><code>qps_exceeded</code></td><td>QPS 超限</td></tr>
+  <tr><td>429</td><td><code>quota_exceeded</code></td><td>本月配额已用完</td></tr>
+  <tr><td>500</td><td>—</td><td>服务端异常（详见 message 字段）</td></tr>
+</table>
+
+<h2>4. 配额规则</h2>
+<ul>
+  <li><b>QPS</b>：单 key 每秒最多 N 次（创建时设，默认 10）</li>
+  <li><b>月配额</b>：自然月内最多 N 次（创建时设，默认 10000）。每月 1 日 0 点自动重置</li>
+  <li><b>限流策略</b>：先 QPS（每秒窗口），后月配额（DB count）。超限直接 429，不消耗 LLM token</li>
+  <li><b>用量查询</b>：<code>GET /api/open/api-keys/{id}/usage?days=7</code>（内部接口，需 JWT）</li>
+</ul>
+
+<div class="warn">
+  💡 <b>生产建议</b>：
+  <ol>
+    <li>secret 务必保存在服务端，不要放进前端代码或 App 代码</li>
+    <li>请求前先校准本地时间（<code>ntpdate</code>），避免 timestamp_expired</li>
+    <li>监听 429 响应并做指数退避</li>
+    <li>每分钟最多失败重试 3 次，避免 secret 错配被误判为撞库</li>
+  </ol>
+</div>
+
+</body>
+</html>

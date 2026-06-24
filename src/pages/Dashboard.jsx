@@ -9,18 +9,22 @@ const { Title, Text } = Typography
 export default function Dashboard() {
   const navigate = useNavigate()
   const [products, setProducts] = useState([])
+  const [productsTotal, setProductsTotal] = useState(0)
   const [jobs, setJobs] = useState([])
+  const [jobsTotal, setJobsTotal] = useState(0)
   const [loading, setLoading] = useState(false)
 
   const load = async () => {
     setLoading(true)
     try {
       const [p, j] = await Promise.all([
-        api.listProducts({ pageNum: 1, pageSize: 10 }),
-        api.listAnalysisJobs({ pageNum: 1, pageSize: 10 }),
+        api.listProducts({ page: 1, size: 10 }),
+        api.listAnalysisJobs({ page: 1, size: 10 }),
       ])
       setProducts(p?.records || p || [])
+      setProductsTotal(p?.total ?? 0)
       setJobs(j?.records || j || [])
+      setJobsTotal(j?.total ?? 0)
     } finally {
       setLoading(false)
     }
@@ -29,11 +33,12 @@ export default function Dashboard() {
   useEffect(() => { load() }, [])
 
   const stats = {
-    total: products.length,
-    pending: jobs.filter((x) => x.status === 'PENDING').length,
-    running: jobs.filter((x) => x.status === 'RUNNING').length,
-    success: jobs.filter((x) => x.status === 'SUCCESS').length,
-    failed: jobs.filter((x) => x.status === 'FAILED').length,
+    productTotal: productsTotal,
+    jobTotal: jobsTotal,
+    // 近 10 条任务中的状态分布（精确数请到任务中心看）
+    recentPending: jobs.filter((x) => x.status === 'PENDING').length,
+    recentRunning: jobs.filter((x) => x.status === 'RUNNING').length,
+    recentSuccess: jobs.filter((x) => x.status === 'SUCCESS').length,
   }
 
   return (
@@ -41,10 +46,10 @@ export default function Dashboard() {
       <Title level={3} style={{ margin: 0 }}>概览</Title>
 
       <Row gutter={16}>
-        <Col span={6}><Card><Statistic title="产品数" value={stats.total} /></Card></Col>
-        <Col span={6}><Card><Statistic title="待分析" value={stats.pending} valueStyle={{ color: '#faad14' }} /></Card></Col>
-        <Col span={6}><Card><Statistic title="分析中" value={stats.running} valueStyle={{ color: '#1677ff' }} /></Card></Col>
-        <Col span={6}><Card><Statistic title="已完成" value={stats.success} valueStyle={{ color: '#52c41a' }} /></Card></Col>
+        <Col span={6}><Card><Statistic title="产品总数" value={stats.productTotal} /></Card></Col>
+        <Col span={6}><Card><Statistic title="任务总数" value={stats.jobTotal} /></Card></Col>
+        <Col span={6}><Card><Statistic title="近10条待分析" value={stats.recentPending} valueStyle={{ color: '#faad14' }} /></Card></Col>
+        <Col span={6}><Card><Statistic title="近10条已完成" value={stats.recentSuccess} valueStyle={{ color: '#52c41a' }} /></Card></Col>
       </Row>
 
       <Card

@@ -58,7 +58,7 @@ export default function ProductDetail() {
       try {
         const p = await api.getProduct(id)
         setProduct(p)
-        const j = await api.listAnalysisJobs({ productId: id, pageNum: 1, pageSize: 5 })
+        const j = await api.listAnalysisJobs({ productId: id, page: 1, size: 5 })
         const jobList = j?.records || j || []
         setJobs(jobList)
         const ok = jobList.find((x) => x.status === 'SUCCESS')

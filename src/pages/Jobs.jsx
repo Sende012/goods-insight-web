@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Card, Table, Tag, Button, Space, Typography, Progress } from 'antd'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../api/client'
@@ -10,14 +10,23 @@ const statusColor = { PENDING: 'gold', RUNNING: 'blue', SUCCESS: 'green', FAILED
 
 export default function Jobs() {
   const [data, setData] = useState([])
+  const [total, setTotal] = useState(0)
+  const [page, setPage] = useState(1)
+  const [size, setSize] = useState(20)
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
+
+  // 让 5s 自动刷新始终读最新的 page/size，不重置到 1
+  const paramsRef = useRef({ page: 1, size: 20 })
+  paramsRef.current = { page, size }
 
   const load = async () => {
     setLoading(true)
     try {
-      const r = await api.listAnalysisJobs({ pageNum: 1, pageSize: 50 })
+      const { page: p, size: s } = paramsRef.current
+      const r = await api.listAnalysisJobs({ page: p, size: s })
       setData(r?.records || r || [])
+      setTotal(r?.total ?? 0)
     } finally {
       setLoading(false)
     }
@@ -43,7 +52,14 @@ export default function Jobs() {
         rowKey="id"
         loading={loading}
         dataSource={data}
-        pagination={{ pageSize: 20 }}
+        pagination={{
+          current: page,
+          pageSize: size,
+          total,
+          showSizeChanger: true,
+          showTotal: (t) => `共 ${t} 条`,
+          onChange: (p, s) => { setPage(p); setSize(s) },
+        }}
         columns={[
           { title: 'ID', dataIndex: 'id', width: 60 },
           { title: '产品ID', dataIndex: 'productId', width: 100 },

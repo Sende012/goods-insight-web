@@ -69,7 +69,7 @@ export default function Reviews() {
   const dropRef = useRef(null)
 
   useEffect(() => {
-    api.listProducts({ pageNum: 1, pageSize: 100 }).then((r) => {
+    api.listProducts({ page: 1, size: 100 }).then((r) => {
       setProducts(r?.records || r || [])
       if (!productId && r?.records?.[0]?.id) {
         setProductId(r.records[0].id)
