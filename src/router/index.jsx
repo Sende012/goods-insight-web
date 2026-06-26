@@ -21,6 +21,9 @@ import DecisionAgent from '../pages/DecisionAgent'
 import Coach from '../pages/Coach'
 import SelectionCoach from '../pages/SelectionCoach'
 import OpenPlatform from '../pages/OpenPlatform'
+import XianyuCategoryScan from '../pages/XianyuCategoryScan'
+import XianyuItemDetail from '../pages/XianyuItemDetail'
+import XianyuSellerAnalysis from '../pages/XianyuSellerAnalysis'
 
 /** 需要登录才能访问 */
 function RequireAuth() {
@@ -56,6 +59,9 @@ export const router = createBrowserRouter([
           { path: 'coach', element: <Coach /> },
           { path: 'selection-coach', element: <SelectionCoach /> },
           { path: 'open-platform', element: <OpenPlatform /> },
+          { path: 'xianyu-scan', element: <XianyuCategoryScan /> },
+          { path: 'xianyu-item-detail', element: <XianyuItemDetail /> },
+          { path: 'xianyu-seller', element: <XianyuSellerAnalysis /> },
           { path: '*', element: <Navigate to="/" replace /> },
         ],
       },

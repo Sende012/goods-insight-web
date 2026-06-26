@@ -63,6 +63,41 @@ const PROCESS_OPTS = ['injection molding', 'CNC', 'printing', 'assembly', 'sewin
 const CERT_OPTS = ['FDA', 'CE', 'FCC', 'ROHS', 'CPSIA']
 const INTEREST_OPTS = ['phone accessories', 'kitchen', 'outdoor', 'pet', 'baby', 'fitness']
 
+// 平台 / 站点联动：CN 站点禁选国际平台；非 CN 站点禁选国内平台
+const PLATFORM_OPTS = [
+  { value: 'AMAZON', label: 'Amazon 亚马逊' },
+  { value: 'EBAY',   label: 'eBay' },
+  { value: 'SHOPIFY', label: 'Shopify' },
+  { value: 'XIANYU', label: '闲鱼' },
+  { value: 'PDD',    label: '拼多多' },
+  { value: 'TAOBAO', label: '淘宝' },
+  { value: 'JD',     label: '京东' },
+]
+const CN_MARKETPLACES = ['CN']
+const CN_PLATFORMS = ['XIANYU', 'PDD', 'TAOBAO', 'JD']
+const INTL_PLATFORMS = ['AMAZON', 'EBAY', 'SHOPIFY']
+
+function filterMarketplacesByPlatform(platform) {
+  // 国际平台 → 不限 CN；但 CN 站点对应国内平台
+  if (INTL_PLATFORMS.includes(platform)) {
+    return [
+      { value: 'US', label: 'US 美国' },
+      { value: 'UK', label: 'UK 英国' },
+      { value: 'DE', label: 'DE 德国' },
+      { value: 'JP', label: 'JP 日本' },
+    ]
+  }
+  // 国内平台 → 仅 CN
+  return [{ value: 'CN', label: 'CN 中国' }]
+}
+
+function filterPlatformsByMarketplace(marketplace) {
+  if (CN_MARKETPLACES.includes(marketplace)) {
+    return PLATFORM_OPTS.filter((p) => CN_PLATFORMS.includes(p.value))
+  }
+  return PLATFORM_OPTS.filter((p) => INTL_PLATFORMS.includes(p.value))
+}
+
 function parseJson(s, fallback = null) {
   if (!s) return fallback
   if (typeof s === 'object') return s
@@ -86,6 +121,7 @@ function scoreColor(score) {
 
 export default function SelectionCoach() {
   const [form] = Form.useForm()
+  const platform = Form.useWatch('platform', form) || 'AMAZON'
   const [generating, setGenerating] = useState(false)
   const [latest, setLatest] = useState(null)
   const [detail, setDetail] = useState(null)
@@ -96,12 +132,17 @@ export default function SelectionCoach() {
   const [page, setPage] = useState(1)
   const [size, setSize] = useState(10)
   const [statusFilter, setStatusFilter] = useState()
+  const [platformFilter, setPlatformFilter] = useState()
   const [detailOpen, setDetailOpen] = useState(false)
 
   const loadList = async () => {
     setLoading(true)
     try {
-      const r = await api.pageSelectionCoach({ status: statusFilter || undefined, page, size })
+      const r = await api.pageSelectionCoach({
+        status: statusFilter || undefined,
+        platform: platformFilter || undefined,
+        page, size,
+      })
       setList(r?.records || [])
       setTotal(r?.total || 0)
     } catch (e) {
@@ -111,14 +152,16 @@ export default function SelectionCoach() {
     }
   }
 
-  useEffect(() => { loadList() }, [page, size, statusFilter])
+  useEffect(() => { loadList() }, [page, size, statusFilter, platformFilter])
 
   const onGenerate = async () => {
     let v
     try { v = await form.validateFields() } catch { return }
     const body = {
       keyword: v.keyword,
+      platform: v.platform || 'AMAZON',
       marketplace: v.marketplace || 'US',
+      platformProductId: v.platformProductId || undefined,
       asin: v.asin || undefined,
       sellPrice: v.sellPrice,
       cogs: v.cogs,
@@ -179,10 +222,24 @@ export default function SelectionCoach() {
         <Form
           form={form}
           layout="vertical"
-          initialValues={{ marketplace: 'US', referralFeePct: 15 }}
+          initialValues={{ platform: 'AMAZON', marketplace: 'US', referralFeePct: 15 }}
+          onValuesChange={(changed, all) => {
+            // 平台 ↔ 站点联动
+            if ('platform' in changed) {
+              const allowed = filterMarketplacesByPlatform(changed.platform)
+              form.setFieldsValue({ marketplace: allowed[0]?.value })
+            }
+            if ('marketplace' in changed) {
+              const allowed = filterPlatformsByMarketplace(changed.marketplace)
+              const cur = form.getFieldValue('platform')
+              if (!allowed.find((p) => p.value === cur)) {
+                form.setFieldsValue({ platform: allowed[0]?.value })
+              }
+            }
+          }}
         >
           <Row gutter={16}>
-            <Col span={8}>
+            <Col span={6}>
               <Form.Item
                 label="关键词 / 类目"
                 name="keyword"
@@ -198,18 +255,18 @@ export default function SelectionCoach() {
               </Form.Item>
             </Col>
             <Col span={4}>
-              <Form.Item label="站点" name="marketplace">
-                <Select options={[
-                  { value: 'US', label: 'US 美国' },
-                  { value: 'UK', label: 'UK 英国' },
-                  { value: 'DE', label: 'DE 德国' },
-                  { value: 'JP', label: 'JP 日本' },
-                ]} />
+              <Form.Item label="平台" name="platform" tooltip="选平台后自动联动站点">
+                <Select options={PLATFORM_OPTS} />
               </Form.Item>
             </Col>
-            <Col span={6}>
-              <Form.Item label="参考 ASIN（选填）" name="asin">
-                <Input placeholder="如 B0C5XYZ123" allowClear />
+            <Col span={3}>
+              <Form.Item label="站点" name="marketplace" tooltip="受平台限制">
+                <Select options={filterMarketplacesByPlatform(platform)} />
+              </Form.Item>
+            </Col>
+            <Col span={5}>
+              <Form.Item label="平台商品 ID（选填）" name="platformProductId" tooltip="AMAZON→ASIN / XIANYU→itemId / TAOBAO→itemId / PDD→goodsId / JD→sku">
+                <Input placeholder="如 B0C5XYZ123 / 789012345678" allowClear />
               </Form.Item>
             </Col>
             <Col span={6}>
@@ -319,6 +376,14 @@ export default function SelectionCoach() {
           <Space>
             <Select
               allowClear
+              placeholder="平台筛选"
+              style={{ width: 120 }}
+              value={platformFilter}
+              onChange={setPlatformFilter}
+              options={PLATFORM_OPTS}
+            />
+            <Select
+              allowClear
               placeholder="状态筛选"
               style={{ width: 120 }}
               value={statusFilter}
@@ -345,6 +410,10 @@ export default function SelectionCoach() {
           columns={[
             { title: 'ID', dataIndex: 'id', width: 60 },
             { title: '关键词', dataIndex: 'inputKeyword', width: 140 },
+            {
+              title: '平台', dataIndex: 'platform', width: 100,
+              render: (p) => p ? <Tag color="purple">{p}</Tag> : <Tag>AMAZON</Tag>,
+            },
             { title: '站点', dataIndex: 'inputMarketplace', width: 60 },
             {
               title: '状态', dataIndex: 'status', width: 100,

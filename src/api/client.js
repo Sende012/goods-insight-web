@@ -146,6 +146,26 @@ export const api = {
   getCategoryScan: (taskId) => client.get(`/category/scan/${taskId}`),
   deleteCategoryScan: (taskId) => client.delete(`/category/scan/${taskId}`),
 
+  // 闲鱼类目扫描（V3.0 闲鱼 MVP，X7）
+  runXianyuCategoryScan: (body) => client.post('/xianyu/category-scan', body),
+  pageXianyuCategoryScan: (params) => client.get('/xianyu/category-scan', { params }),
+  getXianyuCategoryScan: (id) => client.get(`/xianyu/category-scan/${id}`),
+  deleteXianyuCategoryScan: (id) => client.delete(`/xianyu/category-scan/${id}`),
+
+  // 闲鱼商品详情分析（V3.0 P1 S-X2）
+  runXianyuItemDetail: (body) => client.post('/xianyu/item-detail', body, { timeout: 180000 }),
+  pageXianyuItemDetail: (params) => client.get('/xianyu/item-detail', { params }),
+  getXianyuItemDetail: (id) => client.get(`/xianyu/item-detail/${id}`),
+  getLatestXianyuItemDetail: (itemId) => client.get('/xianyu/item-detail/latest', { params: { itemId } }),
+  deleteXianyuItemDetail: (id) => client.delete(`/xianyu/item-detail/${id}`),
+
+  // 闲鱼卖家分析（V3.0 P1 S-X3）
+  runXianyuSellerAnalysis: (body) => client.post('/xianyu/seller-profile', body, { timeout: 180000 }),
+  pageXianyuSellerAnalysis: (params) => client.get('/xianyu/seller-profile', { params }),
+  getXianyuSellerAnalysis: (id) => client.get(`/xianyu/seller-profile/${id}`),
+  getLatestXianyuSellerAnalysis: (sellerId) => client.get('/xianyu/seller-profile/latest', { params: { sellerId } }),
+  deleteXianyuSellerAnalysis: (id) => client.delete(`/xianyu/seller-profile/${id}`),
+
   // 利润估算（v2.0）
   estimateProfit: (body) => client.post('/profit/estimate', body),
   listProfitEstimations: (params) => client.get('/profit/estimations', { params }),
